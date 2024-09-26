@@ -1,16 +1,24 @@
 from PIL import Image
 import pandas as pd
+import numpy as np
 from importlib import resources
 import io
 Image.MAX_IMAGE_PIXELS = None
 
 # Helper function to load png file
 def loadKMZImage(file):
-    # Load the image file
+    """
+    Load the image file from the kgcpy package and return as a NumPy array.
+    """
+    # Load the image as binary data
     with resources.files('kgcpy').joinpath(file).open('rb') as fp:
-        img = fp.read()
-    img = Image.open(io.BytesIO(img))
-    return img
+        img_data = fp.read()
+    
+    # Open the image using Pillow
+    img = Image.open(io.BytesIO(img_data))
+    
+    # Convert the image to a NumPy array for faster access
+    return np.array(img)
 
 # Helper function to load different CSV files
 def loadCSV(file):
@@ -170,3 +178,34 @@ def nearbyCZ(lat,lon,size=1):
     nearbyCZ.remove(climateZone)
 
     return climateZone, uncertaintyNearbyCZ, nearbyCZ
+
+def vectorized_lookupCZ(lat_array, lon_array):
+    """
+    This function will return the climate zone for the provided arrays of coordinates.
+    
+    Args:
+        lat_array (np.array): Array of latitudes.
+        lon_array (np.array): Array of longitudes.
+
+    Returns:
+        np.array: Array of climate zones.
+    """
+    # Ensure lat_array and lon_array are NumPy arrays
+    lat_array = np.array(lat_array)
+    lon_array = np.array(lon_array)
+
+    # Vectorized computation of x and y coordinates from lat/lon
+    x = np.round((lon_array + 180) * (img.shape[1]) / 360 - 0.5).astype(int)
+    y = np.round(-(lat_array - 90) * (img.shape[0]) / 180 - 0.5).astype(int)
+
+    # Ensure x and y are within valid ranges (clipping)
+    x = np.clip(x, 0, img.shape[1] - 1)
+    y = np.clip(y, 0, img.shape[0] - 1)
+
+    # Vectorized pixel lookup from the image NumPy array
+    pixel_values = img[y, x]
+
+    # Vectorized lookup in the kg_zoneNum_df DataFrame to get climate zones
+    climate_zones = kg_zoneNum_df['kg_zone'].loc[kg_zoneNum_df['zoneNum'].isin(pixel_values)].values
+
+    return climate_zones

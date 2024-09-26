@@ -1,22 +1,24 @@
+from importlib import resources
+import io
+
 from PIL import Image
 import pandas as pd
 import numpy as np
-from importlib import resources
-import io
+
 Image.MAX_IMAGE_PIXELS = None
 
 # Helper function to load png file
-def loadKMZImage(file):
+def loadKMZImage(file) -> np.array:
     """
     Load the image file from the kgcpy package and return as a NumPy array.
     """
     # Load the image as binary data
     with resources.files('kgcpy').joinpath(file).open('rb') as fp:
         img_data = fp.read()
-    
+
     # Open the image using Pillow
     img = Image.open(io.BytesIO(img_data))
-    
+
     # Convert the image to a NumPy array for faster access
     return np.array(img)
 
@@ -76,7 +78,7 @@ def translateZipCode(zipcode):
         _type_: _description_
     """
     zipcode = str(zipcode)
-        
+
     try:
         rows = zips_df.loc[zips_df['zip'] == zipcode]
         if len(rows) == 0:
@@ -106,7 +108,8 @@ def irradianceQuantile(kg_zone):
         if len(rows) == 0:
             return f"Climate zone {kg_zone} doesn't exist"
         else:
-            return rows['quantilep98'].iloc[0], rows['quantilep80'].iloc[0], rows['quantilep50'].iloc[0], rows['quantilep30'].iloc[0]
+            return (rows['quantilep98'].iloc[0], rows['quantilep80'].iloc[0],
+                    rows['quantilep50'].iloc[0], rows['quantilep30'].iloc[0])
     except Exception as e:
         return f"Search failed: {e}"
 
@@ -134,10 +137,12 @@ def roundCoordinates(lat,lon):
 
     return latRound, lonRound
 
-#get possible climate zones from nearby pixels, and compare to the center pixel; same as function CZUncertainty() in kgc R package 
+# get possible climate zones from nearby pixels, and compare to the center pixel;
+# same as function CZUncertainty() in kgc R package
 def nearbyCZ(lat,lon,size=1):
     """
-    get possible climate zones from nearby pixels, and compare to the center pixel; same as function CZUncertainty() in kgc R package 
+    get possible climate zones from nearby pixels, and compare to the center pixel;
+    same as function CZUncertainty() in kgc R package
 
     _summary_
 
@@ -152,7 +157,7 @@ def nearbyCZ(lat,lon,size=1):
     # Get the RGB values of the pixel at position (x, y)
     x = round((lon+180)*(img.size[0])/360 - 0.5)
     y = round(-(lat-90)*(img.size[1])/180 - 0.5)
- 
+
     climateZones = []
     climateZone = ''
 
@@ -168,7 +173,7 @@ def nearbyCZ(lat,lon,size=1):
                     climateZone = cz.values[0]
             except IndexError:
                 pass
-    
+
     climateZones_series = pd.Series(climateZones)
     climateZones_counts = climateZones_series.value_counts()
     climateZones_percentage = climateZones_counts / climateZones_counts.sum()

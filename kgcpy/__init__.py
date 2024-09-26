@@ -208,4 +208,10 @@ def vectorized_lookupCZ(lat_array, lon_array):
     # Vectorized lookup in the kg_zoneNum_df DataFrame to get climate zones
     climate_zones = kg_zoneNum_df['kg_zone'].loc[kg_zoneNum_df['zoneNum'].isin(pixel_values)].values
 
+    # Create an array of climate zones corresponding to each input coordinate
+    zone_to_climate = dict(zip(kg_zoneNum_df['zoneNum'], kg_zoneNum_df['kg_zone']))
+
+    # Lookup the climate zone for each pixel value
+    climate_zones = np.array([zone_to_climate.get(pv, np.nan) for pv in pixel_values])
+
     return climate_zones
